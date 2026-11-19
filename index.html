@@ -200,28 +200,30 @@ function spawn() {
 }
 
 // ---------- Σχεδίαση: φόντο (synthwave) ----------
-let SKY = null, SUN = null;
+let SKYCV = null;
+function skyTile() {
+  if (SKYCV) { return SKYCV; }   // ουρανός + ήλιος: στατικά, χτίζονται 1 φορά
+  SKYCV = document.createElement('canvas');
+  SKYCV.width = W; SKYCV.height = GY;
+  const g = SKYCV.getContext('2d');
+  const grad = g.createLinearGradient(0, 0, 0, GY);
+  grad.addColorStop(0, '#070313');
+  grad.addColorStop(0.55, '#1b0f45');
+  grad.addColorStop(0.85, '#4b135e');
+  grad.addColorStop(1, '#93205e');
+  g.fillStyle = grad;
+  g.fillRect(0, 0, W, GY);
+  const sunX = W * 0.72, sunY = GY - 130;   // στατικός ήλιος (ο παλμός ±2px δεν φαίνεται)
+  const sg = g.createRadialGradient(sunX, sunY, 10, sunX, sunY, 68);
+  sg.addColorStop(0, '#ffe95e'); sg.addColorStop(0.6, '#ff9a3d'); sg.addColorStop(1, '#ff2e88');
+  g.fillStyle = sg;
+  g.beginPath(); g.arc(sunX, sunY, 66, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#1b0f45';
+  for (let i = 0; i < 5; i++) { const yy = sunY + 8 + i * 11; g.fillRect(sunX - 68, yy, 136, 3 + i); }
+  return SKYCV;
+}
 function drawBg() {
-  if (!SKY) {
-    SKY = ctx.createLinearGradient(0, 0, 0, GY);
-    SKY.addColorStop(0, '#070313');
-    SKY.addColorStop(0.55, '#1b0f45');
-    SKY.addColorStop(0.85, '#4b135e');
-    SKY.addColorStop(1, '#93205e');
-  }
-  ctx.fillStyle = SKY;
-  ctx.fillRect(0, 0, W, GY);
-
-  // ήλιος με γρίλιες (gradient cached: φτιάχνεται 1 φορά)
-  const sunX = W * 0.72, sunY = GY - 130, sunR = 66 + Math.sin(frame * 0.02) * 2;
-  if (!SUN) {
-    SUN = ctx.createRadialGradient(sunX, sunY, 10, sunX, sunY, 68);   // 68 = 66 + 2: καλύπτει τον παλμό
-    SUN.addColorStop(0, '#ffe95e'); SUN.addColorStop(0.6, '#ff9a3d'); SUN.addColorStop(1, '#ff2e88');
-  }
-  ctx.fillStyle = SUN;
-  ctx.beginPath(); ctx.arc(sunX, sunY, sunR, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = '#1b0f45';
-  for (let i = 0; i < 5; i++) { const yy = sunY + 8 + i * 11; ctx.fillRect(sunX - sunR - 2, yy, sunR * 2 + 4, 3 + i); }
+  ctx.drawImage(skyTile(), 0, 0);
 
   // αστέρια (twinkle)
   for (const s of stars) {

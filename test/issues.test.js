@@ -64,13 +64,13 @@ describe('perf', () => {
     assert.equal(n, 0);
   });
 
-  it('caches sun gradient', () => {
-    assert.ok(html.includes('if (!SUN)'), 'sun gradient rebuilt per frame');
+  it('prerenders sky and sun', () => {
+    assert.ok(html.includes('function skyTile'), 'no sky prerender');
   });
 
   it('prerenders static scenery', () => {
     const draws = (html.match(/drawImage/g) || []).length;
-    assert.ok(draws >= 2, 'no prerendered blits');
+    assert.ok(draws >= 3, 'no prerendered blits');
   });
 
   it('grabs focus on load for itch iframe', () => {
