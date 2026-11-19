@@ -464,6 +464,7 @@ function musToggle() {
   else { clearInterval(MUS.timer); MUS.timer = null; }
 }
 function update() {
+  if (state === 'paused') { return; }   // παύση: πάγωμα φόντου
   frame++;
   SPD = P.speed + (state === 'play' ? Math.min(5, score * 0.005) : 0);  // ράμπα δυσκολίας
   for (const s of stars) { s.x -= SPD * 0.15; if (s.x < 0) { s.x = W; s.y = Math.random() * 200; } }
@@ -575,7 +576,7 @@ function update() {
   const dy1 = hero.y - hh + 4, dy2 = hero.y - 2;
   for (const o of obs) {
     let ox1, ox2, oy1, oy2;
-    if (o.k === 'drone') { ox1 = o.x + 3; ox2 = o.x + o.w - 3; oy1 = o.y - 18; oy2 = o.y + 4; }
+    if (o.k === 'drone') { ox1 = o.x + 3; ox2 = o.x + o.w - 3; oy1 = o.y - 14; oy2 = o.y + 2; }
     else if (o.k === 'lowbar') { ox1 = o.x + 3; ox2 = o.x + o.w - 3; oy1 = GY - 60; oy2 = GY - 36; }
     else { ox1 = o.x + 5; ox2 = o.x + o.w - 5; oy1 = GY - o.h + 6; oy2 = GY; }
     if (dx1 < ox2 && dx2 > ox1 && dy1 < oy2 && dy2 > oy1) {
@@ -629,7 +630,7 @@ function render() {
     ctx.fillStyle = '#0ff'; ctx.font = 'bold 20px monospace';
     ctx.fillText('ΚΛΙΚ ΜΕΣΑ ΣΤΟ ΠΑΙΧΝΙΔΙ Ή SPACE ΓΙΑ ΝΑ ΞΕΚΙΝΗΣΕΙΣ', W / 2, 130);
     ctx.fillStyle = '#888'; ctx.font = '13px monospace';
-    ctx.fillText('Space/↑/κλικ = άλμα (κρατημένο ψηλότερο) • ↓ σκύψιμο • P παύση • η μουσική παίζει μόνη της', W / 2, 155);
+    ctx.fillText('Space/↑/κλικ = άλμα (κρατημένο ψηλότερο) • ↓ σκύψιμο • P παύση • M μουσική', W / 2, 155);
   } else if (state === 'paused') {
     ctx.fillStyle = 'rgba(0,0,0,0.6)'; ctx.fillRect(W / 2 - 160, 100, 320, 80);
     ctx.fillStyle = '#0ff'; ctx.font = 'bold 24px monospace';
@@ -661,7 +662,7 @@ loop.acc = 0; loop.last = 0;
 
 // ---------- Controls ----------
 window.addEventListener('keydown', e => {
-  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); audio(); if (!MUS.on) { musToggle(); } jump(); }
+  if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') { e.preventDefault(); audio(); jump(); }
   else if (e.code === 'ArrowDown' || e.code === 'KeyS') { e.preventDefault(); if (state === 'play') { hero.duck = true; } }
   else if (e.code === 'KeyR') { reset(); state = 'play'; }
   else if (e.code === 'KeyM') { musToggle(); }
@@ -677,7 +678,6 @@ window.addEventListener('keyup', e => {
 canvas.addEventListener('pointerup', jumpCut);
 canvas.addEventListener('pointerdown', () => {
   audio();
-  if (!MUS.on) { musToggle(); }
   if (state === 'over') { reset(); state = 'play'; }
   else { jump(); }
 });

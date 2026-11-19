@@ -1,3 +1,4 @@
 tools/
 deploy/
 pixel_pulse-dist.zip
+node_modules/

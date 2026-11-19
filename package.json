@@ -1,0 +1,9 @@
+{
+  "name": "pixel-pulse",
+  "version": "1.0.0",
+  "description": "Auto-runner pixel arcade game (HTML5, no dependencies)",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/issues.test.js"
+  }
+}
