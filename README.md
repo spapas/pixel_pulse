@@ -1,5 +1,7 @@
 # Pixel Pulse
 
+Play online: https://spapas.github.io/pixel_pulse/
+
 Auto-runner pixel arcade game (HTML5, no dependencies).
 BIT.TRIP-style: one-button jumps, ducking, coins, combo,
 power-ups, procedural chiptune.
