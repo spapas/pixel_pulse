@@ -691,6 +691,8 @@ canvas.addEventListener('pointerdown', () => {
 });
 document.getElementById('restartBtn').addEventListener('click', () => { reset(); state = 'play'; });
 document.getElementById('musicBtn').addEventListener('click', musToggle);
+// itch iframe: πιάσε focus στο φόρτωμα, αλλιώς το πρώτο Space πάει στη σελίδα
+try { canvas.tabIndex = 0; canvas.focus(); window.focus(); } catch (e) {}
 
 // ---------- Dev panel wiring ----------
 const S = {

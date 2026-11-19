@@ -72,6 +72,10 @@ describe('perf', () => {
     const draws = (html.match(/drawImage/g) || []).length;
     assert.ok(draws >= 2, 'no prerendered blits');
   });
+
+  it('grabs focus on load for itch iframe', () => {
+    assert.ok(html.includes('canvas.focus()'), 'no autofocus for keyboard-first users');
+  });
 });
 
 describe('tooling', () => {
