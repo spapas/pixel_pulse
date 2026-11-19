@@ -458,6 +458,7 @@ function musTick() {
 }
 function musToggle() {
   audio();
+  if (!AC) { return; }   // no audio device: stay silent, game continues
   MUS.on = !MUS.on;
   document.getElementById('musicBtn').textContent = MUS.on ? 'Μουσική: ON' : 'Μουσική: OFF';
   if (MUS.on) { MUS.step = 0; MUS.next = AC.currentTime + 0.05; MUS.timer = setInterval(musTick, 30); }

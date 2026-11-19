@@ -43,6 +43,15 @@ describe('music', () => {
     assert.ok(html.includes('musicBtn'), 'missing music button');
   });
 
+  it('toggle survives missing AudioContext', () => {
+    const i = html.indexOf('function musToggle()');
+    assert.ok(i >= 0, 'missing musToggle()');
+    const fn = html.slice(i, i + 600);
+    const guard = fn.indexOf('if (!AC');
+    const use = fn.indexOf('AC.currentTime');
+    assert.ok(guard >= 0 && guard < use, 'musToggle must guard null AC');
+  });
+
   it('start screen documents M', () => {
     assert.ok(!html.includes('παίζει μόνη της'), 'stale auto-music hint');
     assert.ok(html.includes('M μουσική') || html.includes('M: μουσική'), 'missing M hint');
