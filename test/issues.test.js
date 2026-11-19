@@ -58,6 +58,22 @@ describe('music', () => {
   });
 });
 
+describe('perf', () => {
+  it('uses no shadowBlur in hot path', () => {
+    const n = (html.match(/shadowBlur/g) || []).length;
+    assert.equal(n, 0);
+  });
+
+  it('caches sun gradient', () => {
+    assert.ok(html.includes('if (!SUN)'), 'sun gradient rebuilt per frame');
+  });
+
+  it('prerenders static scenery', () => {
+    const draws = (html.match(/drawImage/g) || []).length;
+    assert.ok(draws >= 2, 'no prerendered blits');
+  });
+});
+
 describe('tooling', () => {
   it('has package scripts and server', () => {
     const pkg = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'));

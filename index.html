@@ -115,6 +115,35 @@ function beep(f0, f1, dur, type, vol) {
 let state, frame, score, nextIn, hero, obs, coins, pow, stars, mts;
 let parts, floats, combo, comboT, shake, SPD;   // fx + κόμπο + ενεργή ταχύτητα
 let blds, flash;   // πόλη + φλας θανάτου
+// Προ-render: στατικά sprites σε offscreen canvas (1 drawImage/frame αντί για 100άδες fillRect)
+function newBld(x) {
+  const w = 40 + Math.random() * 70, h = 40 + Math.random() * 90;
+  const cv = document.createElement('canvas');
+  cv.width = Math.ceil(w); cv.height = Math.ceil(h);
+  const g = cv.getContext('2d');
+  g.fillStyle = '#120b2e';
+  g.fillRect(0, 0, cv.width, cv.height);
+  g.fillStyle = '#ffd75e';
+  for (let wy = 8; wy < h - 8; wy += 14) {
+    for (let wx = 6; wx < w - 6; wx += 12) {
+      if (((wx * 7 + wy * 13) | 0) % 5 < 2) { g.fillRect(wx, wy, 5, 7); }
+    }
+  }
+  return { x: x, w: w, h: h, cv: cv };
+}
+let MTN = null;
+function mtnTile() {
+  if (MTN) { return MTN; }   // χτίζεται 1 φορά
+  MTN = document.createElement('canvas');
+  MTN.width = 550; MTN.height = GY;
+  const g = MTN.getContext('2d');
+  g.fillStyle = '#241145';
+  g.beginPath();
+  g.moveTo(0, GY); g.lineTo(150, 120); g.lineTo(300, GY);
+  g.lineTo(400, 170); g.lineTo(550, GY);
+  g.closePath(); g.fill();
+  return MTN;
+}
 function reset() {
   state = 'ready'; frame = 0; score = 0;
   nextIn = 80; SPD = P.speed;
@@ -126,7 +155,7 @@ function reset() {
   mts = [{ x: 0 }, { x: 450 }];
   blds = [];
   let bx = 0;
-  while (bx < W * 2) { const bw = 40 + Math.random() * 70; blds.push({ x: bx, w: bw, h: 40 + Math.random() * 90 }); bx += bw + 10 + Math.random() * 40; }
+  while (bx < W * 2) { const b = newBld(bx); blds.push(b); bx += b.w + 10 + Math.random() * 40; }
   flash = 0;
   scoreEl.textContent = '0'; comboEl.textContent = 'x1';
 }
@@ -171,7 +200,7 @@ function spawn() {
 }
 
 // ---------- Σχεδίαση: φόντο (synthwave) ----------
-let SKY = null;
+let SKY = null, SUN = null;
 function drawBg() {
   if (!SKY) {
     SKY = ctx.createLinearGradient(0, 0, 0, GY);
@@ -183,11 +212,13 @@ function drawBg() {
   ctx.fillStyle = SKY;
   ctx.fillRect(0, 0, W, GY);
 
-  // ήλιος με γρίλιες
+  // ήλιος με γρίλιες (gradient cached: φτιάχνεται 1 φορά)
   const sunX = W * 0.72, sunY = GY - 130, sunR = 66 + Math.sin(frame * 0.02) * 2;
-  const g = ctx.createRadialGradient(sunX, sunY, 10, sunX, sunY, sunR);
-  g.addColorStop(0, '#ffe95e'); g.addColorStop(0.6, '#ff9a3d'); g.addColorStop(1, '#ff2e88');
-  ctx.fillStyle = g;
+  if (!SUN) {
+    SUN = ctx.createRadialGradient(sunX, sunY, 10, sunX, sunY, 68);   // 68 = 66 + 2: καλύπτει τον παλμό
+    SUN.addColorStop(0, '#ffe95e'); SUN.addColorStop(0.6, '#ff9a3d'); SUN.addColorStop(1, '#ff2e88');
+  }
+  ctx.fillStyle = SUN;
   ctx.beginPath(); ctx.arc(sunX, sunY, sunR, 0, Math.PI * 2); ctx.fill();
   ctx.fillStyle = '#1b0f45';
   for (let i = 0; i < 5; i++) { const yy = sunY + 8 + i * 11; ctx.fillRect(sunX - sunR - 2, yy, sunR * 2 + 4, 3 + i); }
@@ -200,34 +231,21 @@ function drawBg() {
   }
   ctx.globalAlpha = 1;
 
-  // βουνά
-  ctx.fillStyle = '#241145';
-  for (const m of mts) {
-    ctx.beginPath();
-    ctx.moveTo(m.x, GY); ctx.lineTo(m.x + 150, 120); ctx.lineTo(m.x + 300, GY);
-    ctx.lineTo(m.x + 400, 170); ctx.lineTo(m.x + 550, GY);
-    ctx.closePath(); ctx.fill();
-  }
+  // βουνά (1 prerendered tile)
+  const mtn = mtnTile();
+  for (const m of mts) { ctx.drawImage(mtn, m.x, 0); }
 
-  // πόλη σιλουέτα + φωτισμένα παράθυρα
-  ctx.fillStyle = '#120b2e';
-  for (const b of blds) { ctx.fillRect(b.x, GY - b.h, b.w, b.h); }
-  ctx.fillStyle = '#ffd75e';
-  for (const b of blds) {
-    for (let wy = GY - b.h + 8; wy < GY - 8; wy += 14) {
-      for (let wx = b.x + 6; wx < b.x + b.w - 6; wx += 12) {
-        if (((wx * 7 + wy * 13) | 0) % 5 < 2) { ctx.fillRect(wx, wy, 5, 7); }
-      }
-    }
-  }
+  // πόλη σιλουέτα + φωτισμένα παράθυρα (prerendered)
+  for (const b of blds) { ctx.drawImage(b.cv, b.x, GY - b.h); }
 
   // έδαφος + neon γραμμή
   ctx.fillStyle = '#0d0a24';
   ctx.fillRect(0, GY, W, H - GY);
-  ctx.shadowColor = '#0ff'; ctx.shadowBlur = 14;
+  // neon γραμμή: ψεύτικη λάμψη με 2 γεμίσματα (φτηνή, χωρίς blur)
+  ctx.fillStyle = 'rgba(0,255,255,0.25)';
+  ctx.fillRect(0, GY - 3, W, 9);
   ctx.fillStyle = '#0ff';
   ctx.fillRect(0, GY, W, 3);
-  ctx.shadowBlur = 0;
   ctx.fillStyle = '#f0f';
   const off = (frame * SPD) % 40;
   for (let x = -off; x < W; x += 40) { ctx.fillRect(x, GY + 14, 20, 2); }
@@ -248,9 +266,7 @@ function drawHero() {
     ctx.fillStyle = '#fff'; ctx.fillRect(x, top + 4, w - 8, 14);   // σώμα
     ctx.fillStyle = '#111'; ctx.fillRect(x, top + 4, 4, 14);        // περίγραμμα
     ctx.fillStyle = '#f43'; ctx.fillRect(x + 2, top - 3, w - 12, 6); // καπέλο
-    ctx.shadowColor = '#0ff'; ctx.shadowBlur = 8;
     ctx.fillStyle = '#0ff'; ctx.fillRect(x + w - 20, top + 7, 12, 5); // visor
-    ctx.shadowBlur = 0;
     ctx.fillStyle = '#fff';                                         // πόδια
     if (run === 0) { ctx.fillRect(x + 6, top + 18, 7, 7); ctx.fillRect(x + 26, top + 18, 7, 7); }
     else { ctx.fillRect(x + 12, top + 18, 7, 7); ctx.fillRect(x + 22, top + 18, 7, 7); }
@@ -271,9 +287,7 @@ function drawHero() {
   ctx.fillStyle = '#fff'; ctx.fillRect(x + 2, top, 20, 15);        // κεφάλι
   ctx.fillStyle = '#f43'; ctx.fillRect(x, top - 5, 24, 6);          // καπέλο
   ctx.fillRect(x + 20, top - 2, 7, 3);                             // γείσο
-  ctx.shadowColor = '#0ff'; ctx.shadowBlur = 8;
   ctx.fillStyle = '#0ff'; ctx.fillRect(x + 10, top + 5, 11, 5);    // visor
-  ctx.shadowBlur = 0;
   ctx.fillStyle = '#fff';                                         // πόδια
   if (!h.onGround) { ctx.fillRect(x + 3, top + 32, 7, 12); ctx.fillRect(x + 13, top + 32, 7, 8); }
   else if (state === 'play') {
@@ -304,10 +318,8 @@ function drawObs(o) {
     ctx.fillStyle = '#ff0'; ctx.fillRect(o.x, o.y - 14, o.w, 16);
     ctx.fillStyle = '#111'; ctx.fillRect(o.x, o.y - 14, o.w, 3); ctx.fillRect(o.x, o.y - 1, o.w, 3);
     const blink = (frame >> 4) % 4;   // μάτι που ανοιγοκλείνει
-    ctx.shadowColor = '#f00'; ctx.shadowBlur = blink === 3 ? 0 : 8;
     ctx.fillStyle = blink === 3 ? '#600' : '#f00';
     ctx.fillRect(o.x + 4, o.y - 10, 6, 6);
-    ctx.shadowBlur = 0;
     const b = (frame >> 2) % 2;                                    // έλικας
     ctx.fillStyle = '#fff';
     if (b === 0) { ctx.fillRect(o.x - 4, o.y - 18, o.w + 8, 3); }
@@ -315,10 +327,8 @@ function drawObs(o) {
     return;
   }
   if (o.k === 'wall') {                                          // ψηλός τοίχος
-    ctx.shadowColor = '#f33'; ctx.shadowBlur = 10;
     ctx.fillStyle = '#c33';
     ctx.fillRect(o.x, GY - o.h, o.w, o.h);
-    ctx.shadowBlur = 0;
     ctx.fillStyle = '#f66';
     for (let yy = GY - o.h; yy < GY; yy += 12) { ctx.fillRect(o.x, yy, o.w, 3); }
     ctx.fillStyle = '#fff';
@@ -329,24 +339,20 @@ function drawObs(o) {
     const by = GY - 56;
     ctx.fillStyle = '#666';
     ctx.fillRect(o.x + 4, 0, 3, by); ctx.fillRect(o.x + o.w - 7, 0, 3, by); // αλυσίδες
-    ctx.shadowColor = '#fb0'; ctx.shadowBlur = 10;
     ctx.fillStyle = '#fb0';
     ctx.fillRect(o.x, by, o.w, 18);
-    ctx.shadowBlur = 0;
     ctx.fillStyle = '#111';
     for (let xx = o.x; xx < o.x + o.w; xx += 14) { ctx.fillRect(xx, by, 7, 18); }
     return;
   }
   // κρύσταλλος: πυραμίδα από rects
   const baseY = GY, n = 5, step = o.h / n;
-  ctx.shadowColor = '#f0f'; ctx.shadowBlur = 10;
   for (let i = 0; i < n; i++) {
     const ww = o.w * (1 - i / n) + 4;
     const xx = o.x + (o.w - ww) / 2;
     ctx.fillStyle = '#f0f';
     ctx.fillRect(xx, baseY - (i + 1) * step, ww, step);
   }
-  ctx.shadowBlur = 0;
   ctx.fillStyle = '#fff';                                          // πυρήνας
   ctx.fillRect(o.x + o.w / 2 - 2, baseY - o.h + 4, 4, o.h - 12);
   if (o.k === 'spike2') {                                          // 2ο κεφάλι δίπλα
@@ -470,9 +476,10 @@ function update() {
   SPD = P.speed + (state === 'play' ? Math.min(5, score * 0.005) : 0);  // ράμπα δυσκολίας
   for (const s of stars) { s.x -= SPD * 0.15; if (s.x < 0) { s.x = W; s.y = Math.random() * 200; } }
   for (const m of mts) { m.x -= SPD * 0.3; if (m.x < -550) { m.x = W; } }
-  for (const b of blds) {
+  for (let i = 0; i < blds.length; i++) {
+    const b = blds[i];
     b.x -= SPD * 0.5;
-    if (b.x + b.w < 0) { b.x = W + Math.random() * 120; b.w = 40 + Math.random() * 70; b.h = 40 + Math.random() * 90; }
+    if (b.x + b.w < 0) { blds[i] = newBld(W + Math.random() * 120); }
   }
   if (flash > 0) { flash--; }
   if (state !== 'play') { return; }
